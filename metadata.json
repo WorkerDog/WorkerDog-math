@@ -1,0 +1,8 @@
+{
+  "name": "Gemini AI Discovery",
+  "description": "An elegant and interactive AI chat application with robust persistence and local storage capabilities, ensuring your conversation history remains secure on your device.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}
