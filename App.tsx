@@ -28,7 +28,9 @@ const App: React.FC = () => {
     const init = async () => {
       await storageService.requestPersistence();
       const savedMessages = await storageService.loadMessages();
-      setState(prev => ({ ...prev, messages: savedMessages }));
+      // Clean up orphaned or empty messages from older sessions
+      const cleaned = savedMessages.filter(m => m.content.trim() !== '' || (m.mediaItems && m.mediaItems.length > 0));
+      setState(prev => ({ ...prev, messages: cleaned }));
       setIsInitialized(true);
     };
     init();
@@ -40,7 +42,9 @@ const App: React.FC = () => {
     
     const save = async () => {
       try {
-        await storageService.saveMessages(state.messages);
+        // Prevent saving temporary blank/incomplete messages directly to primary storage
+        const cleanToSave = state.messages.filter(m => m.content.trim() !== '' || (m.mediaItems && m.mediaItems.length > 0));
+        await storageService.saveMessages(cleanToSave);
       } catch (e) {
         setState(prev => ({ ...prev, error: "Storage Error! Your device might be out of space." }));
       }
@@ -84,7 +88,9 @@ const App: React.FC = () => {
     }));
 
     try {
-      const historySnapshot = [...state.messages, userMsg];
+      // Exclude empty/incomplete messages from the context window
+      const cleanHistory = state.messages.filter(m => m.content.trim() !== '' || (m.mediaItems && m.mediaItems.length > 0));
+      const historySnapshot = [...cleanHistory, userMsg];
       
       let fullText = "";
       await sendMessageStreamWithMedia(
@@ -113,10 +119,13 @@ const App: React.FC = () => {
       }));
     } catch (err: any) {
       console.error("AI Error:", err);
-      // Update message status to error
+      // Update message status to error, and purge the blank temporary assistant message
       setState(prev => ({
         ...prev,
-        messages: prev.messages.map(m => m.id === userMsg.id ? { ...m, status: 'error' as const } : m)
+        messages: prev.messages
+          .map(m => m.id === userMsg.id ? { ...m, status: 'error' as const } : m)
+          .filter(m => m.id !== assistantMsg.id || m.content.trim() !== ""),
+        isThinking: false
       }));
 
       // Extra check for the generic proxy error to give better advice

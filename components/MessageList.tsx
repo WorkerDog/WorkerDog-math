@@ -287,17 +287,23 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isThinking, isGener
           </div>
         )}
 
-        {messages.map((msg) => (
-          <MessageItem 
-            key={msg.id} 
-            msg={msg} 
-            onDeleteMessage={onDeleteMessage} 
-            onResendMessage={onResendMessage}
-            copyToClipboard={copyToClipboard}
-            isSelected={selectedIds.has(msg.id)}
-            onToggleSelect={toggleSelect}
-          />
-        ))}
+        {messages
+          .filter(msg => {
+            // Exclude empty assistant placeholders to prevent blank bubble glitches on render.
+            // These will appear gracefully as soon as content begins streaming.
+            return msg.role === 'user' || msg.content.trim() !== '' || (msg.mediaItems && msg.mediaItems.length > 0);
+          })
+          .map((msg) => (
+            <MessageItem 
+              key={msg.id} 
+              msg={msg} 
+              onDeleteMessage={onDeleteMessage} 
+              onResendMessage={onResendMessage}
+              copyToClipboard={copyToClipboard}
+              isSelected={selectedIds.has(msg.id)}
+              onToggleSelect={toggleSelect}
+            />
+          ))}
 
         {(isThinking || isGeneratingVideo) && (
           <div className="flex justify-start animate-in fade-in duration-500">
